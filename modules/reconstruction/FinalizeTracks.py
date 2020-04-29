@@ -293,7 +293,6 @@ class TrackFinalizer:
         
         
         # Check if any of the derived values are outside of the user defiend thresholds
-        # TODO : a threshold for internal spatial-temporal distances?
         if temporalShift <= self.maxTemporalDiff and spatialDiff <= self.maxSpatialDiff and intersecting_frames <= self.maxIntersectingFrames and intersection_ratio <= self.maxIntersectionRatio:
             validTrack = True
         else:
@@ -406,12 +405,11 @@ class TrackFinalizer:
         return metric_dict
 
 
-    def costAssignment(self, tDistm, sDistm, iFramesm, iFramesRatiom, iTDistm, iSDistm):
+    def costAssignment(self, tDistm, sDistm, iFramesm, iFramesRatiom, iTDistm, iSDistm, verbose=False):
         # If selected, perform intial Re-ID check. Else just get all metric probabilities
 
         metric_dict = self.getMetrics(tDistm, sDistm, iFramesm, iFramesRatiom, iTDistm, iSDistm)
         res = self.getCosts(metric_dict)
-        print(res)
 
         ## Calculate the votes per main track. A low probabiltiy is desirable, as we are working with distances
         votes = np.zeros(self.n_fish)
@@ -421,10 +419,12 @@ class TrackFinalizer:
             votes[np.argmin(res[key])] += 1
             voteSum += res[key]
             metrics += 1
-
-        print("Votes {}".format(votes))
-        print("Vote Sum {}".format(voteSum))
-        print("Normalized Vote Sum {}".format(voteSum / metrics))
+        
+        if verbose:
+            print(res)
+            print("Votes {}".format(votes))
+            print("Vote Sum {}".format(voteSum))
+            print("Normalized Vote Sum {}".format(voteSum / metrics))
 
         votes = voteSum/metrics
 
@@ -482,8 +482,6 @@ class TrackFinalizer:
         mt.x = np.concatenate((mt.x[mt_indecies], gt.x[gt_indecies]))
         mt.y = np.concatenate((mt.y[mt_indecies], gt.y[gt_indecies]))
         mt.z = np.concatenate((mt.z[mt_indecies], gt.z[gt_indecies]))
-        
-        print("{} - {}".format(len(mt.frame), sum(mt_indecies)+sum(gt_indecies)))
 
         mt.sort()
         
@@ -685,8 +683,6 @@ class TrackFinalizer:
                 notAssigned.append(gTrack)
                 continue      
             
-            print(mtID)
-            print(len(validIndecies))
             self.combineTracklets(mainTracks[mtID], gTrack, validIndecies[mtID])
             outputDict[mainTracks[mtID]].append(gTrack)
             assignedCounter += 1
@@ -712,17 +708,12 @@ class TrackFinalizer:
                 if diff > 1:
                     gap.append(diff)
             
-            # TODO : When using intersecting tracks, make a sanity check for how many frames there should be in the track
             print("Main Track {}:".format(mTrack))
             print("\tLength {} - Detections {} - Consistency {} - Start {} - End {}".format(mt.frame[-1]-mt.frame[0]+1, len(mt.frame), len(mt.frame)/(mt.frame[-1]-mt.frame[0]+1), mt.frame[0], mt.frame[-1]))
             if len(gap) > 0:
                 print("\tLargest Gap {} - Mean Gap {} - Median Gap {} - Std Dev Gap {} - Max Gap {} - Min Gap {} - # Gaps {}".format(np.max(gap), np.mean(gap), np.median(gap), np.std(gap), np.max(gap), np.min(gap), len(gap)))
             if len(sDist) > 0:
                 print("\tLargest Dist {} - Mean Dist {} - Median Dist {} - Std Dev Dist {} - Max Dist {} - Min Dist {}\n".format(np.max(sDist), np.mean(sDist), np.median(sDist), np.std(sDist), np.max(sDist), np.min(sDist)))
-        
-        print(assignLog)
-        print(outputDict)
-        print(notAssigned)
 
         with open(os.path.join(self.path, "processed", "assigned.txt"), "w") as f:
             f.write("\n".join(assignLog))
@@ -855,7 +846,6 @@ class TrackFinalizer:
             main_tracks: A list of lists containing the set of main track IDs which can be used as seeds
         """
 
-        # TODO : Need to handle the failure case that there are no good candidates
         detections = []
         length = []
         ids = []
@@ -897,7 +887,6 @@ class TrackFinalizer:
         no_overlap_dict = {x:[] for x in self.tracks}
 
         for conc_set in concurrent_tracks:
-            print(conc_set)
             if len(conc_set) < self.n_fish:
                 # If fewer tracks than fish in the set, discard it
                 continue
@@ -940,10 +929,6 @@ class TrackFinalizer:
                     if valid_set:
                         main_tracks.append(list(sorted(comb_set)))
                         overlap_lst.append(np.median(med_overlap))
-        
-        print(overlap_lst)
-        print(main_tracks)
-        print(no_overlap_dict)
         sort = np.argmax(overlap_lst)
         
         return [main_tracks[sort]]
@@ -968,7 +953,6 @@ class TrackFinalizer:
         
         ## Find main and gallery tracks
         mainTracks_all = self.findMainTracks()
-        print(mainTracks_all)
         
         paths = []
 

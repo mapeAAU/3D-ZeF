@@ -132,7 +132,6 @@ class Track:
         ndim = self.tl_x.ndim
         
         if ndim == 1 or cam is None:
-            # TODO : This enters when the arrays are size (x,), meaning we cant filter by just number of elements, without reshaping first
             tl_x = self.tl_x[compArray == frameNumber]
             tl_y = self.tl_y[compArray == frameNumber]
             c_x = self.c_x[compArray == frameNumber]

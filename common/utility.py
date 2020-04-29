@@ -84,7 +84,6 @@ def findData(df_,*args):
 
     """
     
-    # TODO: See note below
     # **************************
     # NEED A FIX, THAT VERIFIES THAT THE ARGUMENT IS REPRESENTED AS A COLUMN IN
     # THE CSV-FILE! OTHERWISE AN ERROR OCCURS
@@ -370,7 +369,7 @@ def frameConsistencyGraph(indecies, frames, coord, verbose = False):
                         print("edge: {} - {} Weight: {}  Distance {}  -  previous 3D {} - current 3D {}".format(pNode, cNode, weight, dist, coord[pIdx], coord[cIdx]))
         
         prevNodes = currentNodes
-    if zeroCounter:
+    if zeroCounter and verbose:
         print("{} instances of 0 distance".format(zeroCounter))
         
     path = nx.dag_longest_path(graph)
@@ -445,9 +444,6 @@ def getDropIndecies(df, verbose = False):
 
     It is expected that the indecies of the dataframe are unique for each row
     '''
-
-    # TODO : What happens if e.g. two side view tracklets are assigned to a top view tracklet, overlapping slightly, and have a detection in the same frame, where the top view does not have a detection.
-        # How is the choice made in this case?
 
     ids = df.id.unique() # array containing all unique tracklets ids
     drop_idx = [] # list to keep track of which indecies are not kept

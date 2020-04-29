@@ -628,8 +628,6 @@ if __name__ == '__main__':
 
                         frameDiff = track3DFrames - f
                         validFrames = track3DFrames[np.abs(frameDiff) <= maxTemporalDiff]
-                        
-                        # TODO : Maybe add that if it cannot find any valid 3D frames, then look at neighbouring 2D bboxes
 
                         hist = np.zeros((3))
                         for f_t in validFrames:
@@ -688,8 +686,6 @@ if __name__ == '__main__':
     csv.reset_index(inplace=True, drop=True)
 
     # Find cases where there are several rows for the same frame in a single Tracklet, and determines which ones minimize the 3D distance (and therefore should be kept)
-    # TODO : What happens if e.g. two side view tracklets are assigned to a top view tracklet, overlapping slightly, and have a detection in the same frame, where the top view does not have a detection.
-            # How is the choice made in this case?
     csv = csv.drop(getDropIndecies(csv, True))
 
     outputPath = os.path.join(dataPath, 'processed', 'tracklets_3d.csv')

@@ -275,7 +275,7 @@ class Tracker:
                 self.tracks[pCol].M = self.matrixInverse(bbox[mRow]["cov"])
                 self.tracks[pCol].mean = bbox[mRow]["mean"]
                 self.tracks[pCol].frame.append(frameNumber)
-                self.tracks[pCol].killCount = 0  # TODO Maybe jsut decrement by one? 
+                self.tracks[pCol].killCount = 0
                 
             ## If the cost assignment is higher than the ghost threshold, then either create a new track or kill an old one
             else:

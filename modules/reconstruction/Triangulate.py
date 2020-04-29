@@ -1,9 +1,6 @@
 import cv2
 import os.path
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from sklearn.externals import joblib
 ### Module imports ###
 import sys
@@ -132,52 +129,6 @@ class Triangulate:
         # 4) Triangulate points the refracted rays
         rayIntersection = self.rayIntersection(ref1, p1Intersect, ref2, p2Intersect)
 
-        # Plot stuff if enabled
-        if(verbose):
-            # Refracted ray 1
-            cam1Pos = cam1.getPosition()
-            newRay1 = 200 * ray1[0]
-            newRay1 += cam1Pos[0]
-            x1 = [cam1Pos[0][0], newRay1[0]]    
-            y1 = [cam1Pos[0][1], newRay1[1]]
-            z1 = [cam1Pos[0][2], newRay1[2]]
-
-            ref1 /= np.linalg.norm(ref1)
-            ref1 *= 200
-            ref1 += p1Intersect
-            x1r = [p1Intersect[0], ref1[0]]    
-            y1r = [p1Intersect[1], ref1[1]]
-            z1r = [p1Intersect[2], ref1[2]]    
-
-            # Refracted ray 2
-            cam2Pos = cam2.getPosition()
-            newRay2 = 200 * ray2[0]
-            newRay2 += cam2Pos[0]
-            x2 = [cam2Pos[0][0], newRay2[0]]    
-            y2 = [cam2Pos[0][1], newRay2[1]]
-            z2 = [cam2Pos[0][2], newRay2[2]]
-
-            ref2 /= np.linalg.norm(ref2)
-            ref2 *= 200
-            ref2 += p2Intersect
-            x2r = [p2Intersect[0], ref2[0]]    
-            y2r = [p2Intersect[1], ref2[1]]
-            z2r = [p2Intersect[2], ref2[2]]
-
-            fig = plt.figure()
-            ax = fig.gca(projection='3d')
-            ax.plot(x1, y1, z1)
-            ax.plot(x1r, y1r, z1r, 'yellow')
-            ax.plot(x2, y2, z2, 'red')
-            ax.plot(x2r, y2r, z2r, 'green')
-            ax.scatter(*cam1Pos[0], c='black')
-            ax.scatter(*cam2Pos[0], c='black')
-            ax.scatter(*rayIntersection[0], c='black', marker='x', s=20)
-            ax.auto_scale_xyz([0, 40], [0, 40], [0, 40])
-            ax.set_xlabel('X axis')
-            ax.set_ylabel('Y axis')
-            ax.set_zlabel('Z axis')
-            plt.show()        
         return rayIntersection[0], rayIntersection[1]
 
 
@@ -246,62 +197,3 @@ class Triangulate:
         if(verbose):
             print("Triangulated point: {0} with distance: {1}".format(point, dist))    
         return point, dist
-
-
-## ---- Test stuff --- ##
-if __name__ == '__main__':
-    #path = 'temp/wand_test_8jan_2018/'
-    path = '../../../data/13sep/2700_60fps_1/'
-    # 1) Check whether necessary files exists
-    cam = os.path.join(path,'camera.pkl')
-    if(not os.path.isfile(cam)):
-        print("Error finding camera calibration file: \n {0}".format(cam))
-        sys.exit(0)
-    
-    cam1ref = os.path.join(path,'cam1_references.json')
-    cam2ref = os.path.join(path,'cam2_references.json')
-    if(not os.path.isfile(cam1ref)):
-        print("Error finding camera corner reference file: \n {0}".format(cam1ref))
-        sys.exit(0)
-    if(not os.path.isfile(cam2ref)):
-        print("Error finding camera corner reference file: \n {0}".format(cam2ref))
-        sys.exit(0)
-
-    # 2) Prepare cameras
-    cam1 = joblib.load(cam)
-    cam1.calcExtrinsicFromJson(cam1ref)
-    print("Camera 1:")
-    print(" - position: \n" + str(cam1.getPosition()))
-    print(" - rotation: \n" + str(cam1.getRotationMat()))
-    print("")
-
-    cam2 = joblib.load(cam)
-    cam2.calcExtrinsicFromJson(cam2ref)
-    print("Camera 2:")
-    print(" - position: \n" + str(cam2.getPosition()))
-    print(" - rotation: \n" + str(cam2.getRotationMat()))
-    print("")
-
-    print(cam2.plane.normal)
-    newNormal = np.array([0.2, 1.0, -0.2])
-    newNormal /= np.linalg.norm(newNormal)
-    cam2.plane.normal = newNormal
-
-    # 3) Tests
-    errors = []
-    depths = []
-
-
-    # Corner 3 - extrinsic
-    cam1det = np.array([948.0,612.0])
-    cam2det = np.array([1774.0,1172.0])
-
-    tr = Triangulate()
-    p,d = tr.triangulatePoint(cam1det, cam2det, cam1, cam2,
-                              correctRefraction=False, verbose=False)
-    print("Triangulated point: {0} with distance: {1}".format(p, d))
-    errors.append(d)
-    depths.append(p[-1])
-
-    print("Mean error: {0}".format(np.mean(errors)))
-    print("Mean depth: {0}".format(np.mean(depths)))

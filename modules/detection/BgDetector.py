@@ -4,7 +4,6 @@ import configparser
 import time
 import os.path
 import numpy as np
-import matplotlib.pyplot as plt
 import skimage.morphology
 ### Module imports ###
 import sys
@@ -35,7 +34,7 @@ class BgDetector:
         # Load static background and downsample it
         bgPath = os.path.join(dataPath, 'background_cam{0}.png'.format(self.camId))
         bg = cv2.imread(bgPath)
-        self.bg = bg[::self.downsample,::self.downsample] # TODO : Is this the best way to do it?
+        self.bg = bg[::self.downsample,::self.downsample]
 
         # Frame at different stages
         self.frame = None   # Original frame
@@ -379,7 +378,6 @@ class BgDetector:
 
         return (mean, cov)
 
-    # TODO : FIND good new name for keypoints
     def findRotatedBB(self, keypoints):
         """
         Computes the rotated bounding box that fits the best to the BLOB that each keypoint is assocaited with
@@ -501,7 +499,6 @@ class BgDetector:
         return bbs
     
     def fillHoles(self,img):
-        # TODO : Double check statement on floodfill in docstring
         """
         Fill the holes in the provided binary image. This is done by applying the floodFill function on all the parent contours
         
@@ -578,7 +575,7 @@ class BgDetector:
         notZero = np.nonzero(hist)[0]
 
         # Calc black and white entropy
-        eps = 0.0000000000000000001 # TODO : Clean
+        eps = 0.0000000000000000001
         hist += eps # NOTE: Added instead of if check as to allow vectorization
 
         hB = np.zeros(hist.size)
@@ -631,7 +628,7 @@ class BgDetector:
             iterations += 1
             if(iterations > 10000):
                 tt = 0
-                break   # TODO: Should this break out of the entire function?
+                break
         
         # Find mean of the two peaks in the histogram
         tt = []
@@ -883,13 +880,13 @@ class BgDetector:
         filtered = cv2.filter2D(thinned_image.astype(np.uint8),-1,kernel)
 
         # Find endpoints
-        positions = np.where((filtered==116) | (filtered==117) | (filtered==118) | (filtered==131)) #TODO: Double check that all valid points are accounted for
+        positions = np.where((filtered==116) | (filtered==117) | (filtered==118) | (filtered==131))
         points = list(zip(list(positions[0]),list(positions[1])))
         endpoints = self.points2CvKeypoints(points, labels, bbox)
 
         # Find junctions
         if(findJunctions):
-            positions = np.where((filtered==148) | (filtered==149) | (filtered==150) | (filtered==151))  #TODO: Double check that all valid points are accounted for
+            positions = np.where((filtered==148) | (filtered==149) | (filtered==150) | (filtered==151))
             points = list(zip(list(positions[0]),list(positions[1])))
             junctions = self.points2CvKeypoints(points, labels, bbox)
 

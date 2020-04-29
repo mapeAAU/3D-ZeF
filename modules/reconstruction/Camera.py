@@ -487,8 +487,6 @@ class Plane:
 
 
     def intersectionWithRay(self, r, r0, verbose=False):
-        # TODO : What happens if the plane and ray are parallel
-        
         """    
         Calcuates the intersection between a plane and a ray
         

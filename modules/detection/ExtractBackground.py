@@ -108,9 +108,6 @@ if __name__ == '__main__':
     
     args = vars(ap.parse_args())
     
-    # ARGUMENTS *************
-    # ARGUMENTS *************
-    # ARGUMENTS *************
     if args.get("path", None) is None:
         print('No path was provided. Try again!')
         sys.exit()
