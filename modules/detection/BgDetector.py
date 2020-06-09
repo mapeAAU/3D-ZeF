@@ -973,6 +973,76 @@ class BgDetector:
         return size,angle
 
 
+
+
+def _analyseFrame(frame, frameCount, det, predet_df, showVideo):
+    """
+    Performs the main loop of detection fish in a frame
+
+    Input:
+        frame: The frame to be analyzed
+        frameCount: The frame number 
+        det: The initalized detection object, which performs the detections
+        predet_df: A Pandas dataframe containing prior detected bounding boxes, if any
+        showVideo: A boolean indicating whetehr to show the frame that is being processed
+    
+    Output:
+        detLst: A list of dicts, one per detection, containing all the necessary information
+    """
+    
+    bboxes = None
+    if predet_df is not None:
+        predet_series = predet_df[predet_df["Frame"] == frameCount]
+        bboxes = []
+
+        if len(predet_series) == 0:
+            return []
+
+        for index, value in predet_series.iterrows():
+            bboxes.append((int(value["Upper left corner X"]//det.downsample),
+                            int(value["Upper left corner Y"]//det.downsample),
+                            int(value["Lower right corner X"]//det.downsample),
+                            int(value["Lower right corner Y"]//det.downsample),
+                            value["Confidence"]))
+
+    ## Detect keypoints in the frame, and draw them
+    kps, bbs = det.detect(frame, bboxes)
+    detections = []
+
+    for i in range(len(kps)):
+        detections.append((kps[i], bbs[i]))
+    
+    if showVideo:
+        # draw keypoint
+        frame = cv2.drawKeypoints(det.frame, kps, None, (255,0,0), 4)   
+
+        for bb in bbs:
+            cv2.rectangle(frame, (bb["aa_tl_x"], bb["aa_tl_y"]),(bb["aa_tl_x"] + bb["aa_w"], bb["aa_tl_y"]+bb["aa_h"]), (0,0,0), 1)
+            cv2.circle(frame,(int(bb["l_x"]),int(bb["l_y"])),2,(255,0,0),-1)
+            cv2.circle(frame,(int(bb["c_x"]),int(bb["c_y"])),2,(0,255,0),-1)
+            cv2.circle(frame,(int(bb["r_x"]),int(bb["r_y"])),2,(0,0,255),-1)
+
+            
+
+        ## Draw the skeletons        
+        frame[(det.thin),0]=0
+        frame[(det.thin),1]=0
+        frame[(det.thin),2]=255
+        cv2.imshow("test",frame)
+            
+    # Save data into CSV file
+    detLst = []
+    for detection in detections:
+        kps, bb = detection
+        bb["frame"] = frameCount
+        bb["x"] = kps.pt[0]
+        bb["y"] = kps.pt[1]
+        detLst.append((bb))
+
+    return detLst
+
+
+
 if __name__ == '__main__':
     import pandas as pd
     from modules.detection.ExtractBackground import BackgroundExtractor
@@ -982,12 +1052,14 @@ if __name__ == '__main__':
     ap.add_argument("-f", "--path", help="Path to folder")
     ap.add_argument("-c", "--camId", help="Camera ID. top = 1 and front = 2")
     ap.add_argument("-v", "--video", action='store_true', help="Show video")
+    ap.add_argument("-i", "--images", action='store_true', help="Use extracted images instead of mp4 file")
     ap.add_argument("-pd", "--preDet", action='store_true', help="Use predetected bounding boxes")
     
     args = vars(ap.parse_args())
     
     # ARGUMENTS *************
     video = args["video"]
+    useImages = args["images"]
     preDet = args["preDet"]
 
     if args.get("camId", None) is None:
@@ -1005,6 +1077,8 @@ if __name__ == '__main__':
     if preDet:
         predet_df = pd.read_csv(os.path.join(path,"processed", "boundingboxes_2d_cam{}.csv".format(camId)), sep=",")
         predet_df["Frame"] = predet_df["Filename"].str.replace(".png","").astype('int32')
+    else:
+        predet_df = None
 
 
     bgPath = os.path.join(path, 'background_cam{0}.png'.format(camId))
@@ -1013,20 +1087,31 @@ if __name__ == '__main__':
     if not os.path.isfile(bgPath):
         print("No background image present") 
         print("... creating one.") 
-        bgExt = BackgroundExtractor(path, camId)
+        bgExt = BackgroundExtractor(path, camId, video = True)
         bgExt.collectSamples()
         bg = bgExt.createBackground()
         cv2.imwrite(bgPath, bg)
 
-    vidPath = os.path.join(path, 'cam{0}.mp4'.format(camId))
-    print("os.path ", vidPath)
-    
-    cap = cv2.VideoCapture(vidPath)
+    # Configure settings for either reading images or the video file.
+    if useImages:
+        imgPath = os.path.join(path, 'cam{0}'.format(camId))
+        if camId == 1:
+            imgPath = os.path.join(path, 'imgT')
+        else:
+            imgPath = os.path.join(path, 'imgF')
+        
+        if not os.path.isdir(imgPath):
+            print("Could not find image folder {0}".format(imgPath))
+            sys.exit()
+    else:
+        vidPath = os.path.join(path, 'cam{0}.mp4'.format(camId))
+        print("os.path ", vidPath)
+        cap = cv2.VideoCapture(vidPath)
 
-    # Close program if video file could not be opened
-    if not cap.isOpened():
-        print("Could not open video file {0}".format(vidPath))
-        sys.exit()
+        # Close program if video file could not be opened
+        if not cap.isOpened():
+            print("Could not open video file {0}".format(vidPath))
+            sys.exit()
 
     # Prepare detector
     det = BgDetector(camId,path)
@@ -1036,18 +1121,17 @@ if __name__ == '__main__':
     detLst = []
 
     frameCount = 0
-    while(cap.isOpened()):
-        ret, frame = cap.read()
-        frameCount += 1
-        if frameCount%1000 == 0:
-            print("Frame: {0}".format(frameCount))    
 
-        if video:
-            key = cv2.waitKey(1)
-            if key & 0xFF == ord("q"):
-                break
+    if useImages:
+        # Analyse and detect fish using the previously extracted images
+        filenames = [f for f in sorted(os.listdir(imgPath)) if os.path.splitext(f)[-1] in [".png", ".jpg"]]
 
-        if (ret):
+        for filename in filenames:
+
+            frameCount = int(filename[:-4])
+            
+            if frameCount % 1000 == 0:
+                print("Frame: {0}".format(frameCount))    
 
             if frameCount < det.min_frame:
                 continue
@@ -1055,64 +1139,49 @@ if __name__ == '__main__':
             if frameCount > det.max_frame:
                 frameCount -= 1
                 break
-            
-            bboxes = None
-            if preDet:
-                predet_series = predet_df[predet_df["Frame"] == frameCount]
-                bboxes = []
 
-                if len(predet_series) == 0:
-                    continue
-
-                for index, value in predet_series.iterrows():
-                    bboxes.append((int(value["Upper left corner X"]//det.downsample),
-                                   int(value["Upper left corner Y"]//det.downsample),
-                                   int(value["Lower right corner X"]//det.downsample),
-                                   int(value["Lower right corner Y"]//det.downsample),
-                                   value["Confidence"]))
-
-            ## Detect keypoints in the frame, and draw them
-            kps, bbs = det.detect(frame, bboxes)
-            detections = []
-
-            for i in range(len(kps)):
-                detections.append((kps[i], bbs[i]))
-            
             if video:
-                # draw keypoint
-                frame = cv2.drawKeypoints(det.frame, kps, None, (255,0,0), 4)   
+                key = cv2.waitKey(1)
+                if key & 0xFF == ord("q"):
+                    break
+                
+            frame = cv2.imread(os.path.join(imgPath, filename))
+            dets = _analyseFrame(frame, frameCount, det, predet_df, video)
+            detLst.extend(dets)
 
-                for bb in bbs:
-                    cv2.rectangle(frame, (bb["aa_tl_x"], bb["aa_tl_y"]),(bb["aa_tl_x"] + bb["aa_w"], bb["aa_tl_y"]+bb["aa_h"]), (0,0,0), 1)
-                    cv2.circle(frame,(int(bb["l_x"]),int(bb["l_y"])),2,(255,0,0),-1)
-                    cv2.circle(frame,(int(bb["c_x"]),int(bb["c_y"])),2,(0,255,0),-1)
-                    cv2.circle(frame,(int(bb["r_x"]),int(bb["r_y"])),2,(0,0,255),-1)
+    else:
+        # Analyse and detect fish using the video file
+        while(cap.isOpened()):
+            ret, frame = cap.read()
+            frameCount += 1
 
-                    
+            if frameCount % 1000 == 0:
+                print("Frame: {0}".format(frameCount))    
 
-                ## Draw the skeletons        
-                frame[(det.thin),0]=0
-                frame[(det.thin),1]=0
-                frame[(det.thin),2]=255
-                cv2.imshow("test",frame)
+            if frameCount < det.min_frame:
+                continue
 
-        else:
-            if(frameCount > 1000):
+            if frameCount > det.max_frame:
                 frameCount -= 1
                 break
+
+            if video:
+                key = cv2.waitKey(1)
+                if key & 0xFF == ord("q"):
+                    break
+
+            if ret:
+                dets = _analyseFrame(frame, frameCount, det, predet_df, video)
+                detLst.extend(dets)
+
             else:
-                continue
-        
-        # Save data into CSV file
-        for detection in detections:
-            kps, bb = detection
-            bb["frame"] = frameCount
-            bb["x"] = kps.pt[0]
-            bb["y"] = kps.pt[1]
-            detLst.append((bb))
-    
-    cap.release()
-    cv2.destroyAllWindows()
+                if(frameCount > 1000):
+                    frameCount -= 1
+                    break
+                else:
+                    continue
+        cap.release()
+        cv2.destroyAllWindows()
 
     writeConfig(path, [("CameraSynchronization","cam{}_length".format(camId),str(frameCount)+" #Automatically set in BgDetector.py")])
 

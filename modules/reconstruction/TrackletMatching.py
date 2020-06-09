@@ -36,9 +36,6 @@ class TrackletMatcher:
         self.graph = nx.DiGraph()
         self.camIdMap = {}
         self.triangulated = {}
-        
-        self.cap1 = cv2.VideoCapture(os.path.join(dataPath, "Cam1.mp4"))
-        self.cap2 = cv2.VideoCapture(os.path.join(dataPath, "Cam2.mp4"))
 
 
     def loadSettings(self,path):
@@ -509,7 +506,7 @@ if __name__ == '__main__':
 
     csv = pd.DataFrame()
     mergedCount = 0
-    
+
     ## While there are still nodes in the graph
     while(True):
         if(len(tm.graph.nodes) == 0):

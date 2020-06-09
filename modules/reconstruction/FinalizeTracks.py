@@ -929,9 +929,11 @@ class TrackFinalizer:
                     if valid_set:
                         main_tracks.append(list(sorted(comb_set)))
                         overlap_lst.append(np.median(med_overlap))
-        sort = np.argmax(overlap_lst)
-        
-        return [main_tracks[sort]]
+        if len(overlap_lst) > 0:
+            sort = np.argmax(overlap_lst)
+            return [main_tracks[sort]]
+        else:
+            return []
 
     
 
@@ -953,6 +955,9 @@ class TrackFinalizer:
         
         ## Find main and gallery tracks
         mainTracks_all = self.findMainTracks()
+        
+        if len(mainTracks_all) == 0:
+            return [[x] for x in tracks.keys()]
         
         paths = []
 

@@ -433,7 +433,6 @@ def saveTrackCSV(allTracks, folder, csvFilename, frameCount):
 
 def videoTracking(path, camId, det, df_fish, video, preDet):
     vidPath = os.path.join(path, 'cam{0}.mp4'.format(camId))
-    print("os.path ", vidPath)
     
     cap = cv2.VideoCapture(vidPath)
 
@@ -513,6 +512,76 @@ def videoTracking(path, camId, det, df_fish, video, preDet):
     saveTrackCSV(allTracks, folder, csvFilename, frameCount)
 
 
+def imageTracking(path, camId, det, df_fish, video, preDet):
+    imgPath = os.path.join(path, 'cam{0}'.format(camId))
+    
+    # Close program if video file could not be opened
+    if not os.path.isdir(imgPath):
+        print("Could not find image folder {0}".format(imgPath))
+        sys.exit()
+
+
+    df_counter = 0
+    
+    # Prepare tracker
+    tra = Tracker(path, camId)       
+
+    frameCount = 0
+    
+    filenames = [f for f in sorted(os.listdir(imgPath)) if os.path.splitext(f)[-1] in [".png", ".jpg"]]
+    for filename in filenames:
+        key = cv2.waitKey(1)
+        frame = cv2.imread(os.path.join(imgPath, filename))
+
+        frameCount = int(filename[:-4])
+        if key & 0xFF == ord("q"):
+            break
+
+        ## Detect keypoints in the frame, and draw them
+        if not preDet or video:
+            kps, bbs = det.detect(frame)
+        
+        if preDet:
+            if df_counter >= len(df_fish):
+                break
+
+            fish_row = df_fish.loc[(df_fish['frame'] == frameCount)]    
+            if len(fish_row) == 0:
+                continue
+            kps, bbs = readDetectionCSV(fish_row, det.downsample)
+            df_counter += len(fish_row)
+
+        # Associate new detections with tracklets, and potentially create new/kill old tracklets
+        tra.recognise(frameCount, kps, bbs)
+        
+        if video:
+            frame = cv2.drawKeypoints(det.frame, kps, None, (255,0,0), 4)
+            t = tra.tracks
+            if t is not None:
+                for idx, i in enumerate(t):
+                    if i.pos:                        
+                        ## Draw line of the tracklet and draw the keypoints again
+                        pos = (int(i.pos[len(i.pos)-1][0]),int(i.pos[len(i.pos)-1][1]))
+                        frame = drawline(i,frame)
+                        frame = cv2.drawKeypoints(frame, kps, None, (0,255,0), 4)
+            
+            ## Draw the skeletons        
+            frame[(det.thin),0]=0
+            frame[(det.thin),1]=0
+            frame[(det.thin),2]=255
+            cv2.imshow("Frame",frame)
+
+    # Check if /processed/ folder exists
+    folder = os.path.join(path,'processed')
+    if not os.path.isdir(folder):
+        os.mkdir(folder)
+
+    # Save CSV file
+    allTracks = tra.tracks+tra.oldTracks
+    csvFilename = 'tracklets_2d_cam{0}.csv'.format(camId)
+    saveTrackCSV(allTracks, folder, csvFilename, frameCount)
+
+
 def csvTracking(path, camId, det, df_fish):
     df_counter = 0
     # Prepare tracker
@@ -552,6 +621,7 @@ if __name__ == "__main__":
     ap.add_argument("-f", "--path", help="Path to folder")
     ap.add_argument("-c", "--camId", help="Camera ID. top = 1 and front = 2")
     ap.add_argument("-v", "--video", action='store_true', help="Show video")
+    ap.add_argument("-i", "--images", action='store_true', help="Use extracted images, instead of mp4 file")
     ap.add_argument("-pd", "--preDetector", action='store_true', help="Use pre-computed detections from csv file")
         
     args = vars(ap.parse_args())
@@ -559,6 +629,7 @@ if __name__ == "__main__":
     # ARGUMENTS *************
     video = args["video"]
     preDet = args["preDetector"]
+    useImages = args["images"]
 
     if args.get("camId", None) is None:
         print('No camera ID given. Exitting.')
@@ -574,7 +645,7 @@ if __name__ == "__main__":
 
     df_fish = None
     if preDet:
-        detPath = os.path.join(path,'processed', 'detections_2d_cam{0}.csv'.format(camId))#'detections_2d_cam{0}.csv'.format(camId))
+        detPath = os.path.join(path,'processed', 'detections_2d_cam{0}.csv'.format(camId))
         if os.path.isfile(detPath):
             df_fish = pd.read_csv(detPath, sep=",") 
         else:
@@ -588,7 +659,7 @@ if __name__ == "__main__":
     if not os.path.isfile(bgPath):
         print("No background image present") 
         print("... creating one.") 
-        bgExt = BackgroundExtractor(path, camId)
+        bgExt = BackgroundExtractor(path, camId, video = not useImages)
         bgExt.collectSamples()
         bg = bgExt.createBackground()
         cv2.imwrite(bgPath, bg)
@@ -596,8 +667,10 @@ if __name__ == "__main__":
     # Prepare detector
     det = BgDetector(camId, path)
 
-
-    if video or not preDet:
-        videoTracking(path, camId, det, df_fish, video, preDet)
-    elif preDet:
+    if preDet:
         csvTracking(path, camId, det, df_fish)
+    else:
+        if useImages:
+            imageTracking(path, camId, det, df_fish, video, preDet)
+        else:
+            videoTracking(path, camId, det, df_fish, video, preDet)
