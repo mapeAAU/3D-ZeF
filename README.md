@@ -49,6 +49,10 @@ To train and evaluate using the Faster RCNN method, go to the folder "modules/fa
 Utilize the provided docker file. if there are any problems read the DOCKER_README.md file.
 The Faster RCNN Code is based on the torchvision object detection fine tuning guide: https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
 
+##### Pretrained models
+
+The utilized pretrained Faster RCNN models are available at this [Dropbox link](https://www.dropbox.com/s/fesalzi16usruso/3DZeF_pretrained_fasterrcnn.zip?dl=0)
+
 ##### Script Descriptions
 
 train.py
@@ -57,7 +61,11 @@ train.py
 
 evaluateVideo.py
     
-    Runs the Faster RCNN on a provided video with the provided model weights. The output is placed in the "proccessed" folder of the input dir, for easy linking with the tracker pipeline
+    Runs the Faster RCNN on a provided video with the provided model weights. The output is placed in the provided output dir.
+
+evaluateImages.py
+    
+    Runs the Faster RCNN on a provided images with the provided model weights. The output is placed in the provided output dir.
 
 
 #### MOT METRICS
