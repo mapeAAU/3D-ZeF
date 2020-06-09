@@ -60,12 +60,14 @@ def test(args):
 
     cpu_device = torch.device("cpu")
 
-    vid_path = os.path.join(path, "cam{}.mp4".format(camId))
+    if camId == 1:
+        imgs_path = os.path.join(path, "imgT")
+    else:
+        imgs_path = os.path.join(path, "imgF")
 
-    cap = cv2.VideoCapture(vid_path)
-
-    if not cap.isOpened():
-        print("VIDEO NOT FOUND: {}".format(vid_path))
+    if not os.path.isdir(imgs_path):
+        print("Could not find image folder {0}".format(imgs_path))
+        sys.exit()
 
     # move model to the device (GPU/CPU)
     model.to(device)
@@ -75,9 +77,13 @@ def test(args):
     output_df = pd.DataFrame(columns=["Filename", "Object ID", "Annotation tag", "Upper left corner X", "Upper left corner Y", "Lower right corner X", "Lower right corner Y", "Confidence"])
 
     frameCount = 0
-    while(cap.isOpened()):
-        ret, img = cap.read()
-        frameCount += 1
+
+    filenames = [f for f in sorted(os.listdir(imgs_path)) if os.path.splitext(f)[-1] in [".png", ".jpg"]]
+
+    for filename in filenames:
+
+        frameCount = int(filename[:-4])
+        
 
         if frameCount % 1000 == 0:
             print(frameCount)
@@ -88,31 +94,30 @@ def test(args):
         if frameCount > endFrame:
             frameCount -= 1
             break
+            
+        img = cv2.imread(os.path.join(imgs_path, filename))
+        img = F.to_tensor(img)
+        img = [img.to(device)]
 
-        if ret:
-            img = F.to_tensor(img)
-            img = [img.to(device)]
+        outputs = model(img)
+        outputs = {k: v.to(cpu_device) for k, v in outputs[0].items()}
 
-            outputs = model(img)
-            outputs = {k: v.to(cpu_device) for k, v in outputs[0].items()}
+        bboxes = outputs["boxes"].cpu().detach().numpy()
+        labels = outputs["labels"].cpu().detach().numpy()
+        scores = outputs["scores"].cpu().detach().numpy()
+        filename = str(frameCount).zfill(6)+".png"
 
-            bboxes = outputs["boxes"].cpu().detach().numpy()
-            labels = outputs["labels"].cpu().detach().numpy()
-            scores = outputs["scores"].cpu().detach().numpy()
-            filename = str(frameCount).zfill(6)+".png"
+        output_dict = {"Filename": [filename]*len(scores),
+                        "Frame": [frameCount]*len(scores),
+                        "Object ID": [-1]*len(scores),
+                        "Annotation tag": [id_map[x] for x in labels],
+                        "Upper left corner X": list(bboxes[:,0]),
+                        "Upper left corner Y": list(bboxes[:,1]),
+                        "Lower right corner X": list(bboxes[:,2]),
+                        "Lower right corner Y": list(bboxes[:,3]),
+                        "Confidence": list(scores)}
+        output_df = pd.concat([output_df, pd.DataFrame.from_dict(output_dict)], ignore_index=True)
 
-            output_dict = {"Filename": [filename]*len(scores),
-                            "Frame": [frameCount]*len(scores),
-                            "Object ID": [-1]*len(scores),
-                            "Annotation tag": [id_map[x] for x in labels],
-                            "Upper left corner X": list(bboxes[:,0]),
-                            "Upper left corner Y": list(bboxes[:,1]),
-                            "Lower right corner X": list(bboxes[:,2]),
-                            "Lower right corner Y": list(bboxes[:,3]),
-                            "Confidence": list(scores)}
-            output_df = pd.concat([output_df, pd.DataFrame.from_dict(output_dict)], ignore_index=True)
-        else:
-            break
     output_df.to_csv(os.path.join(outputPath, "boundingboxes_2d_cam{}.csv".format(camId)), index=False, sep=",")
 
 if __name__ == "__main__":
