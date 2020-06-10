@@ -87,9 +87,9 @@ Please cite the following paper if you use our code or dataset:
 ```TeX
 @InProceedings{Pedersen_2020_CVPR,
 author = {Pedersen, Malte and Haurum, Joakim Bruslund and Bengtson, Stefan Hein and Moeslund, Thomas B.},
-booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
 title = {3D-ZeF: A 3D Zebrafish Tracking Benchmark Dataset},
+booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
 month = {June},
 year = {2020}
-} 
+}
 ```
