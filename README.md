@@ -3,7 +3,7 @@
 This repository contains the code and scripts for the paper *3D-ZeF: A 3D Zebrafish Tracking Benchmark Dataset*
 
 The paper investigates tracking multiple zebrafish simuntaniously from two unique camea views, in order to generate 3D trajectories of each zebrafish.
-In the paper we present our novel zebrafish 3D tracking dataset, recorded in a laboratory environment at Aalborg, Denmark. The data is publicly available at *TBA*.
+In the paper we present our novel zebrafish 3D tracking dataset, recorded in a laboratory environment at Aalborg, Denmark. The data is publicly available at our [MOT Challenge page](https://motchallenge.net/data/3D-ZeF20).
 
 
 As this is a collection of research code, one might find some occasional rough edges. We have tried to clean up the code to a decent level but if you encounter a bug or a regular mistake, please report it in our issue tracker. 
