@@ -15,7 +15,7 @@ class Camera:
     Class implementation for representing a camera
     """
     
-    def __init__(self):
+    def __init__(self, intrinsicPath=None, extrinsicPath=None):
         """
         Initialize object
         """
@@ -26,6 +26,40 @@ class Camera:
         self.t = None    # Extrinsic camera translation
         self.plane = None # Water interface
         self.roi = None
+        
+        if(intrinsicPath is not None):
+            self.K, self.dist = self.loadIntrinsic(intrinsicPath)
+
+        if(extrinsicPath is not None):
+            self.calcExtrinsicFromJson(extrinsicPath)
+
+    def loadIntrinsic(self, path):
+        """
+        Checks whether a 2D point is within the camera ROI
+        The camera ROI is defined by the corners of the water
+        
+        Input:
+            path: path to json file with the intrinsic parameters
+            
+        Output:
+            K: camera matrix
+            dist: distortion coefficients
+        """    
+        # Load json file
+        with open(path) as f:
+            data = f.read()
+
+        # Remove comments
+        pattern = re.compile('/\*.*?\*/', re.DOTALL | re.MULTILINE)
+        data = re.sub(pattern, ' ', data)
+        
+        # Parse json
+        data = json.loads(data)
+
+        # Load camera matrix K and distortion coefficients
+        K = np.array(data["K"])
+        dist = np.array(data["Distortion"]).flatten()
+        return K, dist
 
     def withinRoi(self, x, y):
         """
