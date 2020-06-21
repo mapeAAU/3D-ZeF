@@ -16,7 +16,7 @@ Use the "pipeline-env.yml" Anaconda environment and run the provided Pipeline ba
  * cam1.mp4 and cam2.mp4, of the top and front views respectively, or the image folders ImgF and ImgT.
  * cam1_references.json and cam2_references.json, containing the world <-> camera correspondance, and the cam1_intrinsic.json and cam2_intrinsic.json files containg the intrinsic camera parameters..
  * cam1.pkl and cam2.pkl containing the camera calibrations.
- * cam1.pkl and cam2.pkl are crated using the JsonToCamera.py script in the reconstruction folder. When using the references and intrinsic json files from the MOTChallenge data folder, you need to rename the camT_*.json files to cam1_*.json and camF_*.json to cam2_*.json.  
+ * cam1.pkl and cam2.pkl are crated using the JsonToCamera.py script in the reconstruction folder. When using the references and intrinsic json files from the MOTChallenge data folder, you need to rename the camT_\*.json files to cam1_\*.json and camF_\*.json to cam2_\*.json.  
  * settings.ini file such as the provided dummy_settings.ini, with line 2, 13, 14, 41 and 42 adjusted to the specific videos.
  * Have an empty folder called "processed".
 
