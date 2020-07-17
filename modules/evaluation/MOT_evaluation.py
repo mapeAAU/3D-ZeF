@@ -315,7 +315,7 @@ def MOT_Evaluation(args):
     Given a ground annotated dataset and a set of predictions, calcualtes the full suite of MOT metriccs + the MTBF metrics
 
     Input:
-        detCSV: Path to tracking CSV file
+        detCSV: Path to tracking CSV file. 
         gtCSV: Path to ground truth CSV file
         task: What kind of tracking to investigate [3D, cam1, cam2, cam1_bbox, cam2_bbox]
         bboxCenter: Use the bbox center instead of the head position for cam1 and cam2 tasks
@@ -328,6 +328,7 @@ def MOT_Evaluation(args):
     det_csv = args["detCSV"]
     task = args["task"]
     bboxCenter = args["bboxCenter"]
+    useMOTFormat = args["useMOTFormat"]
     maxDist = args["thresh"]
     outputDir = args["outputPath"]
     outputFile = args["outputFile"]
@@ -335,7 +336,10 @@ def MOT_Evaluation(args):
     if not os.path.isdir(outputDir):
         os.makedirs(outputDir)
 
-    gt_df = pd.read_csv(gt_csv, sep=";")
+    if useMOTFormat:
+        gt_df = pd.read_csv(gt_csv, sep=",", header=None, usecols=[0,1,2,3,4], names=['frame','id','3d_x','3d_y','3d_z'])
+    else:
+        gt_df = pd.read_csv(gt_csv, sep=";")
     det_df = pd.read_csv(det_csv, sep=",")
 
     if task == "3D":
@@ -557,6 +561,7 @@ if __name__ == "__main__":
 
     ap.add_argument("-task", "--task", type=str, help="What kind of tracking to investigate [3D, cam1, cam2, cam1_bbox, cam2_bbox]")
     ap.add_argument("-bboxCenter", "--bboxCenter", action="store_true", help="Use the bbox center instead of the head position for cam1 and cam2 tasks")
+    ap.add_argument("-useMOTFormat", "--useMOTFormat", action="store_true", help="Use the MOT Challenge ground truth format")
     ap.add_argument("-thresh", "--thresh", type=float, help="Distance threshold")
 
     ap.add_argument("-outputFile", "--outputFile", type=str, help="Name of the output file", default="MOT_Metrics.txt")

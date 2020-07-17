@@ -71,7 +71,7 @@ evaluateImages.py
 
 #### MOT METRICS
 In order to obtain the MOT metrics of the complete tracking output, the MOTMetrics.bat script should be run. For this task the Anaconda environment described in "motmetrics-enc.yml" should be used.
-This requires that at the provided directory path, there is a folder called "gt" with a "annotations_full.csv" file, and an empty folder called "metrics".
+This requires that at the provided directory path, there is a folder called "gt" with a "annotations_full.csv" file or the gt.txt file from the MOT Challenge page, and an empty folder called "metrics". When using gt.txt the --useMOTFormat should be supplied.
 The metrics are calculated using the py-motmetrics package: https://github.com/cheind/py-motmetrics (Version used: 1.1.3.  Retrieved: 30th August 2019)
 
 
