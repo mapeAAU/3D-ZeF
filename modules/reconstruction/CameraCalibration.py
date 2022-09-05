@@ -7,7 +7,8 @@
 import argparse
 import os
 import sys
-from sklearn.externals import joblib
+import joblib
+#from sklearn.externals import joblib
 
 import sys
 sys.path.append('../../')
@@ -18,9 +19,9 @@ from modules.reconstruction.Camera import Camera
 # The parameters are saved in 'camera.pkl' in the same folder
 #
 # Example of usage:
-# > $python calibrate_intrinsics.py -cs 9 6 -ss 0.935 -if ../data/checkerboard_images/ -it .jpg
+# > $python CameraCalibration.py -cs 11 8 -ss 0.935 -if ../data/checkerboard_images/ -it .jpg
 #
-#       -cs is the number of squares on the checkerboard. In the given example the checkerboard has 9x6 squares.
+#       -cs is the number of inner points along each direction of the checkerboard. See "checkerboard_example.png" for clarification.
 #       -ss is the size of the squares in centimeters
 #       -if is the image-folder
 #       -it is the image-type (.jpg, .png, etc.) 
